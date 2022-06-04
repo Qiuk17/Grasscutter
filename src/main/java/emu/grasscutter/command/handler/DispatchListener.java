@@ -23,10 +23,7 @@ public class DispatchListener {
         }
         try {
             Object ret = method.invoke(instance, event.context());
-            Consumer<Object> resultConsumer = event.context().getResultConsumer();
-            if (resultConsumer != null) {
-                resultConsumer.accept(ret);
-            }
+            event.context().onResult(ret);
         } catch (InvocationTargetException e) {
             throw e.getTargetException();
         }

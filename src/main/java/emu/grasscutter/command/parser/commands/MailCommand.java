@@ -1,6 +1,6 @@
 package emu.grasscutter.command.parser.commands;
 
-import emu.grasscutter.command.handler.ContextFields;
+import emu.grasscutter.command.handler.CommonFields;
 import emu.grasscutter.command.handler.HandlerContext;
 import emu.grasscutter.command.handler.collection.MailHandlerCollection;
 import emu.grasscutter.command.parser.CommandParser;
@@ -14,14 +14,14 @@ import emu.grasscutter.game.mail.Mail;
 public class MailCommand {
 
     @DefaultHandler
-    @Description("commands.mail.description")
+    @CommandDescription("commands.mail.description")
     @Permission("mail.send")
     public void sendToSpecificUser(
             BaseCommandSource source,
             @OptionalArgument TargetUid targetUid) {
         if (targetUid != null) {
-            source.onMessage("Mailing to specified %s.".formatted(targetUid.toString()));
-            source.put(ContextFields.TARGET_UID, targetUid.getUid());
+            source.showMessage("Mailing to specified %s.".formatted(targetUid.toString()));
+            source.put(CommonFields.TARGET_UID, targetUid.getUid());
         }
         mailInput(source);
     }
@@ -29,21 +29,21 @@ public class MailCommand {
     @SubCommandHandler("all")
     @Permission("mail.sendAll")
     public void sendToAll(BaseCommandSource source) {
-        source.put(ContextFields.TARGET_UID, -1);
+        source.put(CommonFields.TARGET_UID, -1);
         mailInput(source);
     }
 
     public void mailInput(BaseCommandSource source) {
-        source.onMessage("Please enter the mail title.");
+        source.showMessage("Please enter the mail title.");
         source.pushPrompt("title");
         source.registerCommandConsumer(this::readMailTitle);
     }
 
     public void readMailTitle(BaseCommandSource source, String title) {
         source.put("title", title);
-        source.onMessage("Enter the mail content.");
-        source.onMessage("Press enter if you want a new line.");
-        source.onMessage("type \"EOF\" to end.");
+        source.showMessage("Enter the mail content.");
+        source.showMessage("Press enter if you want a new line.");
+        source.showMessage("type \"EOF\" to end.");
         source.popPrompt();
         source.pushPrompt("content");
         source.put("content", new StringBuilder());
@@ -52,7 +52,7 @@ public class MailCommand {
 
     public void readMailContent(BaseCommandSource source, String contentLine) {
         if (contentLine.equals("EOF")) {
-            source.onMessage("Enter sender name:");
+            source.showMessage("Enter sender name:");
             source.popPrompt();
             source.pushPrompt("sender");
             StringBuilder sb = source.getRequired("content", StringBuilder.class);
@@ -68,7 +68,7 @@ public class MailCommand {
 
     public void readMailSender(BaseCommandSource source, String sender) {
         source.put("sender", sender);
-        source.onMessage("Enter attachments. Currently what you typed is ignored.");
+        source.showMessage("Enter attachments. Currently what you typed is ignored.");
         source.popPrompt();
         source.pushPrompt("attachments");
         source.registerCommandConsumer(this::readAttachments);
@@ -92,7 +92,7 @@ public class MailCommand {
                 MailHandlerCollection.MAIL_SEND,
                 HandlerContext.builder()
                         .content(MailHandlerCollection.Fields.MAIL, mail)
-                        .content(ContextFields.TARGET_UID, source.getOrNull(ContextFields.TARGET_UID, int.class))
+                        .content(CommonFields.TARGET_UID, source.getOrNull(CommonFields.TARGET_UID, int.class))
         );
     }
 }

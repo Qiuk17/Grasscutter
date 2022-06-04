@@ -1,7 +1,7 @@
 package emu.grasscutter.command.source.impl;
 
 import emu.grasscutter.Grasscutter;
-import emu.grasscutter.command.handler.ContextFields;
+import emu.grasscutter.command.handler.CommonFields;
 import emu.grasscutter.command.handler.HandlerContext;
 import emu.grasscutter.command.parser.annotation.Origin;
 import emu.grasscutter.command.source.BaseCommandSource;
@@ -32,12 +32,12 @@ public final class ServerConsoleSource extends BaseCommandSource {
     }
 
     @Override
-    public synchronized void onMessage(String message) {
+    public synchronized void showMessage(String message) {
         Grasscutter.getLogger().info(message);
     }
 
     @Override
-    public synchronized void onError(String error) {
+    public synchronized void showError(String error) {
         Grasscutter.getLogger().error(error);
     }
 
@@ -57,13 +57,13 @@ public final class ServerConsoleSource extends BaseCommandSource {
     public HandlerContext buildContext(HandlerContext.HandlerContextBuilder contextBuilder) {
         HandlerContext context = contextBuilder
                 .errorConsumer(e -> Grasscutter.getLogger().error(e.toString(), e))
-                .resultConsumer(r -> onMessage(r != null ? "Result: %s.".formatted(r.toString()) : "Completed."))
-                .messageConsumer(m -> onMessage(m.toString()))
+                .resultConsumer(r -> showMessage(r != null ? "Result: %s.".formatted(r.toString()) : "Completed."))
+                .messageConsumer(m -> showMessage(m.toString()))
                 .build();
         // inject target into context if not implicitly specified
-        Integer targetUid = context.getOptional(ContextFields.TARGET_UID, getOrNull(PERSISTED_TARGET_KEY, Integer.class));
+        Integer targetUid = context.getOptional(CommonFields.TARGET_UID, getOrNull(PERSISTED_TARGET_KEY, Integer.class));
         if (targetUid != null) {
-            context = context.toBuilder().content(ContextFields.TARGET_UID, targetUid).build();
+            context = context.toBuilder().content(CommonFields.TARGET_UID, targetUid).build();
         }
         return context;
     }

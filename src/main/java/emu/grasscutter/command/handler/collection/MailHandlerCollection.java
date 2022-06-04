@@ -9,7 +9,7 @@ import emu.grasscutter.game.mail.Mail;
 import emu.grasscutter.game.player.Player;
 import lombok.SneakyThrows;
 
-import static emu.grasscutter.command.handler.ContextFields.*;
+import static emu.grasscutter.command.handler.CommonFields.*;
 import static emu.grasscutter.utils.Language.translate;
 
 @HandlerCollection
@@ -22,7 +22,7 @@ public class MailHandlerCollection {
         int target = context.getOptional(TARGET_UID, -1); // -1 means to all
 
         if (target != -1) {
-            Player player = DatabaseHelper.getPlayerById(target);
+            Player player = DatabaseHelper.getPlayerByUid(target);
             if (player != null) {
                 player.sendMail(mail);
             } else {

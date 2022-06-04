@@ -16,15 +16,15 @@ public final class AccountHandlerCollection {
     public void createAccount(HandlerContext context) {
         String username = context.getRequired(Fields.ACCOUNT_USERNAME, String.class);
         int uid = context.getOptional(Fields.ACCOUNT_UID, 0);
-        Account account = DatabaseHelper.createAccountWithId(username, uid);
+        Account account = DatabaseHelper.createAccountWithUid(username, uid);
 
         if (account == null) {
-            context.notify(translate("commands.account.exists"));
+            context.onMessage(translate("commands.account.exists"));
             return;
         }
         account.addPermission("*");
         account.save();
-        context.notify(translate("commands.account.create", Integer.toString(account.getPlayerUid())));
+        context.onMessage(translate("commands.account.create", Integer.toString(account.getReservedPlayerUid())));
     }
 
     @Handler(ACCOUNT_DELETE)
@@ -34,9 +34,9 @@ public final class AccountHandlerCollection {
         Account accountToDelete = DatabaseHelper.getAccountByName(username);
         if (accountToDelete != null) {
             DatabaseHelper.deleteAccount(accountToDelete);
-            context.notify(translate("commands.account.delete"));
+            context.onMessage(translate("commands.account.delete"));
         } else {
-            context.notify(translate("commands.account.no_account"));
+            context.onMessage(translate("commands.account.no_account"));
         }
     }
 

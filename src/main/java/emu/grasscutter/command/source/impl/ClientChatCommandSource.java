@@ -1,6 +1,6 @@
 package emu.grasscutter.command.source.impl;
 
-import emu.grasscutter.command.handler.ContextFields;
+import emu.grasscutter.command.handler.CommonFields;
 import emu.grasscutter.command.handler.HandlerContext;
 import emu.grasscutter.command.parser.annotation.Origin;
 import emu.grasscutter.command.source.BaseCommandSource;
@@ -28,14 +28,14 @@ public class ClientChatCommandSource extends BaseCommandSource {
     }
 
     @Override
-    public synchronized void onMessage(String message) {
+    public synchronized void showMessage(String message) {
         if (!disposed) {
             player.dropMessage(message);
         }
     }
 
     @Override
-    public synchronized void onError(String error) {
+    public synchronized void showError(String error) {
         if (!disposed) {
             player.dropMessage("Error: %s".formatted(error));
         }
@@ -44,18 +44,18 @@ public class ClientChatCommandSource extends BaseCommandSource {
     @Override
     public HandlerContext buildContext(HandlerContext.HandlerContextBuilder contextBuilder) {
         HandlerContext context = contextBuilder
-                .errorConsumer(e -> onError(e.toString()))
-                .resultConsumer(r -> onMessage(r != null ? "Handler result: %s.".formatted(r.toString()) : "Handler completed."))
-                .messageConsumer(m -> onMessage(m.toString()))
+                .errorConsumer(e -> showError(e.toString()))
+                .resultConsumer(r -> showMessage(r != null ? "Handler result: %s.".formatted(r.toString()) : "Handler completed."))
+                .messageConsumer(m -> showMessage(m.toString()))
                 .build();
         Integer targetUid = context.getOptional(
-                ContextFields.TARGET_UID,
+                CommonFields.TARGET_UID,
                 getOrNull(PERSISTED_TARGET_KEY, Integer.class)
         );
         if (targetUid != null) {
             context = context.toBuilder()
-                    .content(ContextFields.TARGET_UID, targetUid)
-                    .content(ContextFields.SENDER_UID, player.getUid())
+                    .content(CommonFields.TARGET_UID, targetUid)
+                    .content(CommonFields.SENDER_UID, player.getUid())
                     .build();
         }
         return context;
@@ -77,4 +77,5 @@ public class ClientChatCommandSource extends BaseCommandSource {
             source.disposed = true;
         }
     }
+
 }

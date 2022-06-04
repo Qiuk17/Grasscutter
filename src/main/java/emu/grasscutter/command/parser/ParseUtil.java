@@ -13,13 +13,20 @@ import java.util.regex.Pattern;
 
 public class ParseUtil {
 
+    // Split user inputs with spaces, ignore quoted spaces.
+    // e.g. `some "complex \" commands"` -> [`some`, `"complex \" commands"`]
     private static final Pattern CommandPattern =
             Pattern.compile("\"([^\"\\\\]*(?:\\\\.[^\"\\\\]*)*)\"|'([^'\\\\]*(?:\\\\.[^'\\\\]*)*)'|\\S+");
+
+    // Explicitly check if there is unescaped quotes in a quoted string.
+    // e.g. `"invalid " quotes"` -> fail; `"valid \" quote"` -> success; `"not closed` -> fail
     private static final Pattern SyntaxCheck =
             Pattern.compile("^\"([^\\\\\"]|(\\\\\\\\)|(\\\\\"))*\"$|^'([^\\\\']|(\\\\\\\\)|(\\\\'))*'$|[^'\"\\\\]+");
+
+    // To test whether the quotes can be striped.
     private static final Pattern StripQuotePattern =
             Pattern.compile("^\"([^\"]|(?<=\\\\)\")*(?<!\\\\)\"$|^'([^']|(?<=\\\\)')*(?<!\\\\)'$");
-    // magic. don't touch.
+
     @SneakyThrows
     public static Queue<String> spiltCommand(String str) {
         Matcher matcher = CommandPattern.matcher(str.trim());

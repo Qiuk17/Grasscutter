@@ -10,7 +10,7 @@ import emu.grasscutter.command.source.BaseCommandSource;
 public class AccountCommand {
     @SubCommandHandler("create")
     @AllowedOrigin(Origin.SERVER)
-    @Description("commands.account.description.create")
+    @CommandDescription("commands.account.description.create")
     public void createAccount(BaseCommandSource source, String username, @OptionalArgument Integer uid) {
         CommandParser.dispatch(
                 source,
@@ -23,7 +23,7 @@ public class AccountCommand {
 
     @SubCommandHandler("delete")
     @AllowedOrigin(Origin.SERVER)
-    @Description("commands.account.description.delete")
+    @CommandDescription("commands.account.description.delete")
     public void deleteAccount(BaseCommandSource source, String username) {
         CommandParser.dispatch(
                 source,

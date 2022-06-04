@@ -26,7 +26,6 @@ import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.reflections.Reflections;
-import org.reflections8.scanners.TypeAnnotationsScanner;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
@@ -233,7 +232,7 @@ public final class Grasscutter {
 
 	public static void startConsole() {
 		// Console should not start in dispatch only mode.
-		if (getConfig().RunMode == ServerRunMode.DISPATCH_ONLY) {
+		if (getConfig().server.runMode == ServerRunMode.DISPATCH_ONLY) {
 			getLogger().info(translate("messages.dispatch.no_commands_error"));
 			return;
 		}
