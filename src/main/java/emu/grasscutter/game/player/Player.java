@@ -2,6 +2,8 @@ package emu.grasscutter.game.player;
 
 import dev.morphia.annotations.*;
 import emu.grasscutter.GameConstants;
+import emu.grasscutter.Grasscutter;
+import emu.grasscutter.command.source.impl.ClientChatCommandSource;
 import emu.grasscutter.data.GameData;
 import emu.grasscutter.data.excels.PlayerLevelData;
 import emu.grasscutter.database.DatabaseHelper;
@@ -1313,7 +1315,10 @@ public class Player {
 		this.save();
 		this.getTeamManager().saveAvatars();
 		this.getFriendsList().save();
-		
+
+		// dispose command source to prevent messages being dropped to offline players
+		ClientChatCommandSource.disposeCommandSource(this);
+
 		// Call quit event.
 		PlayerQuitEvent event = new PlayerQuitEvent(this); event.call();
 

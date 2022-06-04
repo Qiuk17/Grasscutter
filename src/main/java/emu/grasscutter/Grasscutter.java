@@ -8,6 +8,7 @@ import emu.grasscutter.auth.DefaultAuthentication;
 import emu.grasscutter.command.CommandMap;
 import emu.grasscutter.game.managers.EnergyManager.EnergyManager;
 import emu.grasscutter.game.managers.StaminaManager.StaminaManager;
+import emu.grasscutter.command.source.impl.ServerConsoleSource;
 import emu.grasscutter.plugin.PluginManager;
 import emu.grasscutter.plugin.api.ServerHook;
 import emu.grasscutter.scripts.ScriptLoader;
@@ -25,6 +26,7 @@ import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.reflections.Reflections;
+import org.reflections8.scanners.TypeAnnotationsScanner;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
@@ -229,6 +231,44 @@ public final class Grasscutter {
 		return config;
 	}
 
+	public static void startConsole() {
+		// Console should not start in dispatch only mode.
+		if (getConfig().RunMode == ServerRunMode.DISPATCH_ONLY) {
+			getLogger().info(translate("messages.dispatch.no_commands_error"));
+			return;
+		}
+		ServerConsoleSource commandSource = new ServerConsoleSource(consoleLineReader);
+		getLogger().info(translate("messages.status.done"));
+		String input = null;
+		boolean isLastInterrupted = false;
+		while (true) {
+			try {
+				input = commandSource.readLine();
+			} catch (UserInterruptException e) {
+				if (!isLastInterrupted) {
+					isLastInterrupted = true;
+					Grasscutter.getLogger().info("Press Ctrl-C again to shutdown.");
+					continue;
+				} else {
+					Runtime.getRuntime().exit(0);
+				}
+			} catch (EndOfFileException e) {
+				Grasscutter.getLogger().info("EOF detected.");
+				continue;
+			} catch (IOError e) {
+				Grasscutter.getLogger().error("An IO error occurred.", e);
+				continue;
+			}
+
+			isLastInterrupted = false;
+			try {
+				commandSource.runCommand(input);
+			} catch (Exception e) {
+				Grasscutter.getLogger().error(translate("messages.game.command_error"), e);
+			}
+		}
+	}
+
 	public static Language getLanguage() {
 		return language;
 	}
@@ -296,44 +336,6 @@ public final class Grasscutter {
 	public static void updateDayOfWeek() {
 		Calendar calendar = Calendar.getInstance();
 		day = calendar.get(Calendar.DAY_OF_WEEK); 
-	}
-
-	public static void startConsole() {
-		// Console should not start in dispatch only mode.
-		if (SERVER.runMode == ServerRunMode.DISPATCH_ONLY) {
-			getLogger().info(translate("messages.dispatch.no_commands_error"));
-			return;
-		}
-
-		getLogger().info(translate("messages.status.done"));
-		String input = null;
-		boolean isLastInterrupted = false;
-		while (config.server.game.enableConsole) {
-			try {
-				input = consoleLineReader.readLine("> ");
-			} catch (UserInterruptException e) {
-				if (!isLastInterrupted) {
-					isLastInterrupted = true;
-					Grasscutter.getLogger().info("Press Ctrl-C again to shutdown.");
-					continue;
-				} else {
-					Runtime.getRuntime().exit(0);
-				}
-			} catch (EndOfFileException e) {
-				Grasscutter.getLogger().info("EOF detected.");
-				continue;
-			} catch (IOError e) {
-				Grasscutter.getLogger().error("An IO error occurred.", e);
-				continue;
-			}
-
-			isLastInterrupted = false;
-			try {
-				CommandMap.getInstance().invoke(null, null, input);
-			} catch (Exception e) {
-				Grasscutter.getLogger().error(translate("messages.game.command_error"), e);
-			}
-		}
 	}
 
 	/**
