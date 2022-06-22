@@ -7,13 +7,9 @@ import java.util.List;
 import java.util.Map;
 
 import emu.grasscutter.Grasscutter;
+import emu.grasscutter.data.binout.*;
 import emu.grasscutter.utils.Utils;
-import emu.grasscutter.data.custom.AbilityEmbryoEntry;
-import emu.grasscutter.data.custom.AbilityModifier;
-import emu.grasscutter.data.custom.AbilityModifierEntry;
-import emu.grasscutter.data.custom.OpenConfigEntry;
-import emu.grasscutter.data.custom.ScenePointEntry;
-import emu.grasscutter.data.def.*;
+import emu.grasscutter.data.excels.*;
 import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -27,7 +23,10 @@ public class GameData {
 	private static final Map<String, AbilityModifierEntry> abilityModifiers = new HashMap<>();
 	private static final Map<String, OpenConfigEntry> openConfigEntries = new HashMap<>();
 	private static final Map<String, ScenePointEntry> scenePointEntries = new HashMap<>();
-	
+	private static final Int2ObjectMap<MainQuestData> mainQuestData = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<HomeworldDefaultSaveData> homeworldDefaultSaveData = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<SceneNpcBornData> npcBornData = new Int2ObjectOpenHashMap<>();
+
 	// ExcelConfigs
 	private static final Int2ObjectMap<PlayerLevelData> playerLevelDataMap = new Int2ObjectOpenHashMap<>();
 	
@@ -50,7 +49,8 @@ public class GameData {
 	private static final Int2ObjectMap<WeaponPromoteData> weaponPromoteDataMap = new Int2ObjectOpenHashMap<>();
 	private static final Int2ObjectMap<WeaponCurveData> weaponCurveDataMap = new Int2ObjectOpenHashMap<>();
 	private static final Int2ObjectMap<EquipAffixData> equipAffixDataMap = new Int2ObjectOpenHashMap<>();
-	
+
+	private static final Int2ObjectMap<EnvAnimalGatherConfigData> envAnimalGatherConfigDataMap = new Int2ObjectOpenHashMap<>();
 	private static final Int2ObjectMap<MonsterData> monsterDataMap = new Int2ObjectOpenHashMap<>();
 	private static final Int2ObjectMap<NpcData> npcDataMap = new Int2ObjectOpenHashMap<>();
 	private static final Int2ObjectMap<GadgetData> gadgetDataMap = new Int2ObjectOpenHashMap<>();
@@ -63,17 +63,39 @@ public class GameData {
 	
 	private static final Int2ObjectMap<SceneData> sceneDataMap = new Int2ObjectLinkedOpenHashMap<>();
 	private static final Int2ObjectMap<FetterData> fetterDataMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<CodexQuestData> codexQuestDataMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<CodexQuestData> codexQuestDataIdMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<CodexAnimalData> codexAnimalDataMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<CodexWeaponData> codexWeaponDataMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<CodexWeaponData> codexWeaponDataIdMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<CodexMaterialData> codexMaterialDataMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<CodexMaterialData> codexMaterialDataIdMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<CodexReliquaryData> codexReliquaryDataMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<CodexReliquaryData> codexReliquaryDataIdMap = new Int2ObjectOpenHashMap<>();
+	private static final ArrayList<CodexReliquaryData> codexReliquaryArrayList = new ArrayList<>();
 	private static final Int2ObjectMap<FetterCharacterCardData> fetterCharacterCardDataMap = new Int2ObjectOpenHashMap<>();
 	private static final Int2ObjectMap<RewardData> rewardDataMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<WorldAreaData> worldAreaDataMap = new Int2ObjectOpenHashMap<>();
 	private static final Int2ObjectMap<WorldLevelData> worldLevelDataMap = new Int2ObjectOpenHashMap<>();
 	private static final Int2ObjectMap<DailyDungeonData> dailyDungeonDataMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<DungeonEntryData> dungeonEntryDataMap = new Int2ObjectOpenHashMap<>();
+
 	private static final Int2ObjectMap<DungeonData> dungeonDataMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<QuestData> questDataMap = new Int2ObjectOpenHashMap<>();
 	private static final Int2ObjectMap<ShopGoodsData> shopGoodsDataMap = new Int2ObjectOpenHashMap<>();
 	private static final Int2ObjectMap<CombineData> combineDataMap = new Int2ObjectOpenHashMap<>();
 	private static final Int2ObjectMap<RewardPreviewData> rewardPreviewDataMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<GatherData> gatherDataMap = new Int2ObjectOpenHashMap<>();
 	private static final Int2ObjectMap<TowerFloorData> towerFloorDataMap = new Int2ObjectOpenHashMap<>();
 	private static final Int2ObjectMap<TowerLevelData> towerLevelDataMap = new Int2ObjectOpenHashMap<>();
 	private static final Int2ObjectMap<TowerScheduleData> towerScheduleDataMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<ForgeData> forgeDataMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<HomeWorldLevelData> homeWorldLevelDataMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<FurnitureMakeConfigData> furnitureMakeConfigDataMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<InvestigationMonsterData> investigationMonsterDataMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<CityData> cityDataMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<BattlePassMissionExcelConfigData> battlePassMissionExcelConfigDataMap = new Int2ObjectOpenHashMap<>();
+	private static final Int2ObjectMap<BattlePassRewardExcelConfigData> battlePassRewardExcelConfigDataMap = new Int2ObjectOpenHashMap<>();
 
 	// Cache
 	private static Map<Integer, List<Integer>> fetters = new HashMap<>();
@@ -122,6 +144,18 @@ public class GameData {
 		return getScenePointEntries().get(sceneId + "_" + pointId);
 	}
 
+	public static Int2ObjectMap<MainQuestData> getMainQuestDataMap() {
+		return mainQuestData;
+	}
+
+	public static Int2ObjectMap<HomeworldDefaultSaveData> getHomeworldDefaultSaveData() {
+		return homeworldDefaultSaveData;
+	}
+	
+	public static Int2ObjectMap<SceneNpcBornData> getSceneNpcBornData() {
+		return npcBornData;
+	}
+	
 	public static Int2ObjectMap<AvatarData> getAvatarDataMap() {
 		return avatarDataMap;
 	}
@@ -224,6 +258,9 @@ public class GameData {
 	public static Int2ObjectMap<MonsterData> getMonsterDataMap() {
 		return monsterDataMap;
 	}
+	public static Int2ObjectMap<EnvAnimalGatherConfigData> getEnvAnimalGatherConfigDataMap() {
+		return envAnimalGatherConfigDataMap;
+	}
 
 	public static Int2ObjectMap<NpcData> getNpcDataMap() {
 		return npcDataMap;
@@ -286,6 +323,22 @@ public class GameData {
 		return fetters;
 	}
 
+	public static Int2ObjectMap<CodexQuestData> getCodexQuestDataIdMap(){return codexQuestDataIdMap;}
+
+	public static Int2ObjectMap<CodexAnimalData> getCodexAnimalDataMap(){return codexAnimalDataMap;}
+
+	public static Int2ObjectMap<CodexWeaponData> getCodexWeaponDataIdMap(){return codexWeaponDataIdMap;}
+
+	public static Int2ObjectMap<CodexMaterialData> getCodexMaterialDataIdMap(){return codexMaterialDataIdMap;}
+
+	public static Int2ObjectMap<CodexReliquaryData> getcodexReliquaryIdMap(){return codexReliquaryDataIdMap;}
+
+	public static ArrayList<CodexReliquaryData> getcodexReliquaryArrayList(){return codexReliquaryArrayList;}
+
+	public static Int2ObjectMap<WorldAreaData> getWorldAreaDataMap() {
+		return worldAreaDataMap;
+	}
+	
 	public static Int2ObjectMap<WorldLevelData> getWorldLevelDataMap() {
 		return worldLevelDataMap;
 	}
@@ -296,6 +349,10 @@ public class GameData {
 	  
 	public static Int2ObjectMap<DailyDungeonData> getDailyDungeonDataMap() {
 		return dailyDungeonDataMap;
+	}
+
+	public static Int2ObjectMap<DungeonEntryData> getDungeonEntryDatatMap(){
+		return dungeonEntryDataMap;
 	}
 
 	public static Map<Integer, List<ShopGoodsData>> getShopGoodsDataEntries() {
@@ -325,10 +382,47 @@ public class GameData {
 	public static Int2ObjectMap<TowerFloorData> getTowerFloorDataMap(){
 		return towerFloorDataMap;
 	}
+	
 	public static Int2ObjectMap<TowerLevelData> getTowerLevelDataMap(){
 		return towerLevelDataMap;
 	}
+	
 	public static Int2ObjectMap<TowerScheduleData> getTowerScheduleDataMap(){
 		return towerScheduleDataMap;
+	}
+
+	public static Int2ObjectMap<QuestData> getQuestDataMap() {
+		return questDataMap;
+	}
+
+	public static Int2ObjectMap<ForgeData> getForgeDataMap() {
+		return forgeDataMap;
+	}
+	
+	public static Int2ObjectMap<HomeWorldLevelData> getHomeWorldLevelDataMap() {
+		return homeWorldLevelDataMap;
+	}
+	
+	public static Int2ObjectMap<FurnitureMakeConfigData> getFurnitureMakeConfigDataMap() {
+		return furnitureMakeConfigDataMap;
+	}
+	
+	public static Int2ObjectMap<GatherData> getGatherDataMap() {
+		return gatherDataMap;
+	}
+	
+	public static Int2ObjectMap<InvestigationMonsterData> getInvestigationMonsterDataMap() {
+		return investigationMonsterDataMap;
+	}
+	public static Int2ObjectMap<CityData> getCityDataMap() {
+		return cityDataMap;
+	}
+
+	public static Int2ObjectMap<BattlePassMissionExcelConfigData> getBattlePassMissionExcelConfigDataMap() {
+		return battlePassMissionExcelConfigDataMap;
+	}
+
+	public static Int2ObjectMap<BattlePassRewardExcelConfigData> getBattlePassRewardExcelConfigDataMap() {
+		return battlePassRewardExcelConfigDataMap;
 	}
 }

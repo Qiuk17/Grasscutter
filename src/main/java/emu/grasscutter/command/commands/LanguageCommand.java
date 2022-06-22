@@ -13,7 +13,7 @@ import java.util.Locale;
 
 import static emu.grasscutter.utils.Language.translate;
 
-@Command(label = "language", usage = "language [language code]", description = "commands.language.description", aliases = {"lang"})
+@Command(label = "language", usage = "language [language code]", description = "commands.language.description", aliases = {"lang"}, targetRequirement = Command.TargetRequirement.NONE)
 public final class LanguageCommand implements CommandHandler {
 
     @Override
@@ -31,18 +31,26 @@ public final class LanguageCommand implements CommandHandler {
         }
 
         String langCode = args.get(0);
-        String actualLangCode = null;
+
+        var languageInst = Grasscutter.getLanguage(langCode);
+        var actualLangCode = languageInst.getLanguageCode();
+        var locale = Locale.forLanguageTag(actualLangCode);
         if (sender != null) {
-            var locale = Locale.forLanguageTag(langCode);
-            actualLangCode = Utils.getLanguageCode(locale);
-            sender.getAccount().setLocale(locale);
-            return;
+            var account = sender.getAccount();
+            account.setLocale(locale);
+            account.save();
         }
         else {
-            var languageInst = Grasscutter.getLanguage(langCode);
-            actualLangCode = languageInst.getLanguageCode();
             Grasscutter.setLanguage(languageInst);
+            var config = Grasscutter.getConfig();
+            config.language.language = locale;
+            Grasscutter.saveConfig(config);
         }
+
+        if (!langCode.equals(actualLangCode)) {
+            CommandHandler.sendMessage(sender, translate(sender, "commands.language.language_not_found", langCode));
+        }
+
         CommandHandler.sendMessage(sender, translate(sender, "commands.language.language_changed", actualLangCode));
 
     }

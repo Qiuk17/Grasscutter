@@ -37,7 +37,7 @@ public abstract class GameEntity {
 	
 	public GameEntity(Scene scene) {
 		this.scene = scene;
-		this.moveState = MotionState.MOTION_NONE;
+		this.moveState = MotionState.MOTION_STATE_NONE;
 	}
 	
 	public int getId() {
@@ -107,10 +107,6 @@ public abstract class GameEntity {
 	public void setLastMoveReliableSeq(int lastMoveReliableSeq) {
 		this.lastMoveReliableSeq = lastMoveReliableSeq;
 	}
-
-	public abstract SceneEntityInfo toProto();
-	
-	public abstract void onDeath(int killerId);
 	
 	public void setFightProperty(FightProperty prop, float value) {
 		this.getFightProperties().put(prop.getId(), value);
@@ -216,7 +212,24 @@ public abstract class GameEntity {
 		
 		// Check if dead
 		if (isDead) {
-			getScene().killEntity(this, 0);
+			getScene().killEntity(this, killerId);
 		}
 	}
+	
+    /**
+     * Called when this entity is added to the world
+     */
+	public void onCreate() {
+		
+	}
+	
+	/**
+     * Called when this entity dies
+     * @param killerId Entity id of the entity that killed this entity
+     */
+	public void onDeath(int killerId) {
+		
+	}
+	
+	public abstract SceneEntityInfo toProto();
 }

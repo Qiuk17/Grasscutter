@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 public @interface Command {
     String label() default "";
 
-    String usage() default "No usage specified";
+    String usage() default "commands.generic.no_usage_specified";
 
     String description() default "commands.generic.no_description_specified";
 
@@ -17,6 +17,14 @@ public @interface Command {
     String permission() default "";
     
     String permissionTargeted() default "";
+
+    public enum TargetRequirement {
+        NONE,       // targetPlayer is not required
+        OFFLINE,    // targetPlayer must be offline
+        PLAYER,     // targetPlayer can be online or offline
+        ONLINE      // targetPlayer must be online
+    }
+    TargetRequirement targetRequirement() default TargetRequirement.ONLINE;
 
     boolean threading() default false;
 }

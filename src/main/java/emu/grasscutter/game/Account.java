@@ -1,18 +1,16 @@
 package emu.grasscutter.game;
 
 import dev.morphia.annotations.*;
-import emu.grasscutter.Grasscutter;
 import emu.grasscutter.database.DatabaseHelper;
 import emu.grasscutter.utils.Crypto;
 import emu.grasscutter.utils.Utils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
+import java.util.stream.Stream;
 
 import org.bson.Document;
 
-import com.mongodb.DBObject;
+import static emu.grasscutter.Configuration.*;
 
 @Entity(value = "accounts", useDiscriminator = false)
 public class Account {
@@ -23,18 +21,23 @@ public class Account {
 	private String username;
 	private String password; // Unused for now
 	
-	@AlsoLoad("playerUid") private int playerId;
+	private int reservedPlayerId;
 	private String email;
 	
 	private String token;
 	private String sessionKey; // Session token for dispatch server
 	private List<String> permissions;
     private Locale locale;
+
+	private String banReason;
+	private int banEndTime;
+	private int banStartTime;
+	private boolean isBanned;
 	
 	@Deprecated
 	public Account() {
 		this.permissions = new ArrayList<>();
-        this.locale = Grasscutter.getConfig().LocaleLanguage;
+        this.locale = LANGUAGE;
 	}
 
 	public String getId() {
@@ -69,12 +72,12 @@ public class Account {
 		this.token = token;
 	}
 
-	public int getPlayerUid() {
-		return this.playerId;
+	public int getReservedPlayerUid() {
+		return this.reservedPlayerId;
 	}
 
-	public void setPlayerId(int playerId) {
-		this.playerId = playerId;
+	public void setReservedPlayerUid(int playerId) {
+		this.reservedPlayerId = playerId;
 	}
 	
 	public String getEmail() {
@@ -106,6 +109,46 @@ public class Account {
     public void setLocale(Locale locale) {
         this.locale = locale;
     }
+
+	public String getBanReason() {
+		return banReason;
+	}
+
+	public void setBanReason(String banReason) {
+		this.banReason = banReason;
+	}
+
+	public int getBanEndTime() {
+		return banEndTime;
+	}
+
+	public void setBanEndTime(int banEndTime) {
+		this.banEndTime = banEndTime;
+	}
+
+	public int getBanStartTime() {
+		return banStartTime;
+	}
+
+	public void setBanStartTime(int banStartTime) {
+		this.banStartTime = banStartTime;
+	}
+
+	public boolean isBanned() {
+		if (banEndTime > 0 && banEndTime < System.currentTimeMillis() / 1000) {
+			this.isBanned = false;
+			this.banEndTime = 0;
+			this.banStartTime = 0;
+			this.banReason = null;
+			save();
+		}
+
+		return isBanned;
+	}
+
+	public void setBanned(boolean isBanned) {
+		this.isBanned = isBanned;
+	}
 
 	/**
 	 * The collection of a player's permissions.
@@ -144,22 +187,28 @@ public class Account {
 	}
 
 	public boolean hasPermission(String permission) {
-		if (this.permissions.contains(permission) || this.permissions.contains("*")) {
-			return true;
-		}
+		if(this.permissions.contains("*") && this.permissions.size() == 1) return true;
+
+		// Add default permissions if it doesn't exist
+		List<String> permissions = Stream.of(this.permissions, Arrays.asList(ACCOUNT.defaultPermissions))
+				.flatMap(Collection::stream)
+				.distinct().toList();
+
+		if (permissions.contains(permission)) return true;
+
 		String[] permissionParts = permission.split("\\.");
-		for (String p : this.permissions) {
-			if (permissionMatchesWildcard(p, permissionParts)) {
-				return true;
-			}
+		for (String p : permissions) {
+			if (p.startsWith("-") && permissionMatchesWildcard(p.substring(1), permissionParts)) return false;
+			if (permissionMatchesWildcard(p, permissionParts)) return true;
 		}
-		return false;
+
+		return permissions.contains("*");
 	}
-	
+
 	public boolean removePermission(String permission) {
 		return this.permissions.remove(permission);
 	}
-	
+
 	// TODO make unique
 	public String generateLoginToken() {
 		this.token = Utils.bytesToHex(Crypto.createSessionKey(32));
@@ -180,7 +229,7 @@ public class Account {
 
         // Set account default language as server default language
         if (!document.containsKey("locale")) {
-            this.locale = Grasscutter.getConfig().LocaleLanguage;
+            this.locale = LANGUAGE;
         }
 	}
 }

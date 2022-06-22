@@ -1,6 +1,6 @@
 package emu.grasscutter.server.packet.send;
 
-import emu.grasscutter.game.dungeons.DungeonChallenge;
+import emu.grasscutter.game.dungeons.challenge.WorldChallenge;
 import emu.grasscutter.net.packet.BasePacket;
 import emu.grasscutter.net.packet.PacketOpcodes;
 import emu.grasscutter.net.proto.DungeonSettleNotifyOuterClass.DungeonSettleNotify;
@@ -9,7 +9,7 @@ import emu.grasscutter.net.proto.TowerLevelEndNotifyOuterClass.TowerLevelEndNoti
 
 public class PacketDungeonSettleNotify extends BasePacket {
 	
-	public PacketDungeonSettleNotify(DungeonChallenge challenge) {
+	public PacketDungeonSettleNotify(WorldChallenge challenge) {
 		super(PacketOpcodes.DungeonSettleNotify);
 
 		DungeonSettleNotify proto = DungeonSettleNotify.newBuilder()
@@ -22,17 +22,17 @@ public class PacketDungeonSettleNotify extends BasePacket {
 		this.setData(proto);
 	}
 
-	public PacketDungeonSettleNotify(DungeonChallenge challenge,
-									 boolean canJump,
-									 boolean hasNextLevel,
-									 int nextFloorId
+	public PacketDungeonSettleNotify(WorldChallenge challenge,
+                                     boolean canJump,
+                                     boolean hasNextLevel,
+                                     int nextFloorId
 	) {
 		super(PacketOpcodes.DungeonSettleNotify);
 
-		var continueStatus = TowerLevelEndNotify.ContinueStateType.CONTINUE_STATE_CAN_NOT_CONTINUE_VALUE;
+		var continueStatus = TowerLevelEndNotify.ContinueStateType.CONTINUE_STATE_TYPE_CAN_NOT_CONTINUE_VALUE;
 		if(challenge.isSuccess() && canJump){
-			continueStatus = hasNextLevel ? TowerLevelEndNotify.ContinueStateType.CONTINUE_STATE_CAN_ENTER_NEXT_LEVEL_VALUE
-					:  TowerLevelEndNotify.ContinueStateType.CONTINUE_STATE_CAN_ENTER_NEXT_FLOOR_VALUE;
+			continueStatus = hasNextLevel ? TowerLevelEndNotify.ContinueStateType.CONTINUE_STATE_TYPE_CAN_ENTER_NEXT_LEVEL_VALUE
+					:  TowerLevelEndNotify.ContinueStateType.CONTINUE_STATE_TYPE_CAN_ENTER_NEXT_FLOOR_VALUE;
 		}
 
 		var towerLevelEndNotify = TowerLevelEndNotify.newBuilder()

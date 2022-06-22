@@ -1,6 +1,6 @@
 package emu.grasscutter.server.packet.send;
 
-import emu.grasscutter.game.managers.MapMarkManager.MapMark;
+import emu.grasscutter.game.managers.mapmark.MapMark;
 import emu.grasscutter.game.player.Player;
 import emu.grasscutter.net.packet.BasePacket;
 import emu.grasscutter.net.packet.PacketOpcodes;
@@ -10,7 +10,7 @@ import java.util.*;
 
 public class PacketMarkMapRsp extends BasePacket {
 
-    public PacketMarkMapRsp(Player player, HashMap<String, MapMark> mapMarks) {
+    public PacketMarkMapRsp(HashMap<String, MapMark> mapMarks) {
         super(PacketOpcodes.MarkMapRsp);
 
         MarkMapRspOuterClass.MarkMapRsp.Builder proto = MarkMapRspOuterClass.MarkMapRsp.newBuilder();

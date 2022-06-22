@@ -9,7 +9,7 @@ import java.util.List;
 
 import static emu.grasscutter.utils.Language.translate;
 
-@Command(label = "reload", usage = "reload", permission = "server.reload", description = "commands.reload.description")
+@Command(label = "reload", usage = "reload", permission = "server.reload", description = "commands.reload.description", targetRequirement = Command.TargetRequirement.NONE)
 public final class ReloadCommand implements CommandHandler {
 
     @Override
@@ -21,7 +21,6 @@ public final class ReloadCommand implements CommandHandler {
         Grasscutter.getGameServer().getGachaManager().load();
         Grasscutter.getGameServer().getDropManager().load();
         Grasscutter.getGameServer().getShopManager().load();
-        Grasscutter.getDispatchServer().loadQueries();
         
         CommandHandler.sendMessage(sender, translate(sender, "commands.reload.reload_done"));
     }

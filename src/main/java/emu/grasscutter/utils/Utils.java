@@ -6,16 +6,16 @@ import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.time.*;
 import java.time.temporal.TemporalAdjusters;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-import java.util.Locale;
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
 
-import emu.grasscutter.Config;
 import emu.grasscutter.Grasscutter;
+import emu.grasscutter.data.DataLoader;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntList;
 
 import org.slf4j.Logger;
 
@@ -62,7 +62,7 @@ public final class Utils {
 		BufferedInputStream bis = new BufferedInputStream(inputStream);
 		ByteArrayOutputStream buf = new ByteArrayOutputStream();
 		for (int result = bis.read(); result != -1; result = bis.read()) {
-		    buf.write((byte) result);
+			buf.write((byte) result);
 		}
 		return buf.toString();
 	}
@@ -76,17 +76,17 @@ public final class Utils {
 	private static final char[] HEX_ARRAY = "0123456789abcdef".toCharArray();
 	public static String bytesToHex(byte[] bytes) {
 		if (bytes == null) return "";
-	    char[] hexChars = new char[bytes.length * 2];
-	    for (int j = 0; j < bytes.length; j++) {
-	        int v = bytes[j] & 0xFF;
-	        hexChars[j * 2] = HEX_ARRAY[v >>> 4];
-	        hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
-	    }
-	    return new String(hexChars);
+		char[] hexChars = new char[bytes.length * 2];
+		for (int j = 0; j < bytes.length; j++) {
+			int v = bytes[j] & 0xFF;
+			hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+			hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+		}
+		return new String(hexChars);
 	}
 	
 	public static String bytesToHex(ByteBuf buf) {
-	    return bytesToHex(byteBufToArray(buf));
+		return bytesToHex(byteBufToArray(buf));
 	}
 	
 	public static byte[] byteBufToArray(ByteBuf buf) {
@@ -98,10 +98,10 @@ public final class Utils {
 	public static int abilityHash(String str) {
 		int v7 = 0;
 		int v8 = 0;
-	    while (v8 < str.length()) {
-	    	v7 = str.charAt(v8++) + 131 * v7;
-	    }
-	    return v7;
+		while (v8 < str.length()) {
+			v7 = str.charAt(v8++) + 131 * v7;
+		}
+		return v7;
 	}
 
 	/**
@@ -175,12 +175,12 @@ public final class Utils {
 	 * Checks for required files and folders before startup.
 	 */
 	public static void startupCheck() {
-		Config config = Grasscutter.getConfig();
+		ConfigContainer config = Grasscutter.getConfig();
 		Logger logger = Grasscutter.getLogger();
 		boolean exit = false;
 
-		String resourcesFolder = config.RESOURCE_FOLDER;
-		String dataFolder = config.DATA_FOLDER;
+		String resourcesFolder = config.folderStructure.resources;
+		String dataFolder = config.folderStructure.data;
 
 		// Check for resources folder.
 		if(!fileExists(resourcesFolder)) {
@@ -199,6 +199,9 @@ public final class Utils {
 		// Check for game data.
 		if(!fileExists(dataFolder))
 			createFolder(dataFolder);
+
+		// Make sure the data folder is populated, if there are any missing files copy them from resources
+		DataLoader.CheckAllFiles();
 
 		if(exit) System.exit(1);
 	}
@@ -272,47 +275,138 @@ public final class Utils {
 	}
 
 	/**
-	 * Switch properties from upper case to lower case?
+	 * Performs a linear interpolation using a table of fixed points to create an effective piecewise f(x) = y function.
+	 * @param x
+	 * @param xyArray Array of points in [[x0,y0], ... [xN, yN]] format
+	 * @return f(x) = y
 	 */
-	public static Map<String, Object> switchPropertiesUpperLowerCase(Map<String, Object> objMap, Class<?> cls) {
-		Map<String, Object> map = new HashMap<>(objMap.size());
-		for (String key : objMap.keySet()) {
-			try {
-				char c = key.charAt(0);
-				if (c >= 'a' && c <= 'z') {
-					try {
-						cls.getDeclaredField(key);
-						map.put(key, objMap.get(key));
-					} catch (NoSuchFieldException e) {
-						String s1 = String.valueOf(c).toUpperCase();
-						String after = key.length() > 1 ? s1 + key.substring(1) : s1;
-						cls.getDeclaredField(after);
-						map.put(after, objMap.get(key));
-					}
-				} else if (c >= 'A' && c <= 'Z') {
-					try {
-						cls.getDeclaredField(key);
-						map.put(key, objMap.get(key));
-					} catch (NoSuchFieldException e) {
-						String s1 = String.valueOf(c).toLowerCase();
-						String after = key.length() > 1 ? s1 + key.substring(1) : s1;
-						cls.getDeclaredField(after);
-						map.put(after, objMap.get(key));
-					}
-				}
-			} catch (NoSuchFieldException e) {
-				map.put(key, objMap.get(key));
+	public static int lerp(int x, int[][] xyArray) {
+		try {
+			if (x <= xyArray[0][0]){  // Clamp to first point
+				return xyArray[0][1];
+			} else if (x >= xyArray[xyArray.length-1][0]) {  // Clamp to last point
+				return xyArray[xyArray.length-1][1];
 			}
+			// At this point we're guaranteed to have two lerp points, and pity be somewhere between them.
+			for (int i=0; i < xyArray.length-1; i++) {
+				if (x == xyArray[i+1][0]) {
+					return xyArray[i+1][1];
+				}
+				if (x < xyArray[i+1][0]) {
+					// We are between [i] and [i+1], interpolation time!
+					// Using floats would be slightly cleaner but we can just as easily use ints if we're careful with order of operations. 
+					int position = x - xyArray[i][0];
+					int fullDist = xyArray[i+1][0] - xyArray[i][0];
+					int prevValue = xyArray[i][1];
+					int fullDelta = xyArray[i+1][1] - prevValue;
+					return prevValue + ( (position * fullDelta) / fullDist );
+				}
+			}
+		} catch (IndexOutOfBoundsException e) {
+			Grasscutter.getLogger().error("Malformed lerp point array. Must be of form [[x0, y0], ..., [xN, yN]].");
 		}
-
-		return map;
+		return 0;
 	}
 
 	/**
-	 * get language code from Locale
+	 * Checks if an int is in an int[]
+	 * @param key int to look for
+	 * @param array int[] to look in
+	 * @return key in array
 	 */
-    public static String getLanguageCode(Locale locale) {
-        return String.format("%s-%s", locale.getLanguage(), locale.getCountry());
-    }
+	public static boolean intInArray(int key, int[] array) {
+		for (int i : array) {
+			if (i == key) {
+				return true;
+			}
+		}
+		return false;
+	}
 
+	/**
+	 * Return a copy of minuend without any elements found in subtrahend.
+	 * @param minuend The array we want elements from
+	 * @param subtrahend The array whose elements we don't want
+	 * @return The array with only the elements we want, in the order that minuend had them
+	 */
+	public static int[] setSubtract(int[] minuend, int[] subtrahend) {
+		IntList temp = new IntArrayList();
+		for (int i : minuend) {
+			if (!intInArray(i, subtrahend)) {
+				temp.add(i);
+			}
+		}
+		return temp.toIntArray();
+	}
+
+	/**
+	 * Gets the language code from a given locale.
+	 * @param locale A locale.
+	 * @return A string in the format of 'XX-XX'.
+	 */
+	public static String getLanguageCode(Locale locale) {
+		return String.format("%s-%s", locale.getLanguage(), locale.getCountry());
+	}
+
+	/**
+	 * Base64 encodes a given byte array.
+	 * @param toEncode An array of bytes.
+	 * @return A base64 encoded string.
+	 */
+	public static String base64Encode(byte[] toEncode) {
+		return Base64.getEncoder().encodeToString(toEncode);
+	}
+
+	/**
+	 * Base64 decodes a given string.
+	 * @param toDecode A base64 encoded string.
+	 * @return An array of bytes.
+	 */
+	public static byte[] base64Decode(String toDecode) {
+		return Base64.getDecoder().decode(toDecode);
+	}
+
+	/**
+	 * Safely JSON decodes a given string.
+	 * @param jsonData The JSON-encoded data.
+	 * @return JSON decoded data, or null if an exception occurred.
+	 */
+	public static <T> T jsonDecode(String jsonData, Class<T> classType) {
+		try {
+			return Grasscutter.getGsonFactory().fromJson(jsonData, classType);
+		} catch (Exception ignored) {
+			return null;
+		}
+	}
+
+	/***
+	 * Draws a random element from the given list, following the given probability distribution, if given.
+	 * @param list The list from which to draw the element.
+	 * @param probabilities The probability distribution. This is given as a list of probabilities of the same length it `list`.
+	 * @return A randomly drawn element from the given list.
+	 */
+	public static <T> T drawRandomListElement(List<T> list, List<Integer> probabilities) {
+		// If we don't have a probability distribution, or the size of the distribution does not match
+		// the size of the list, we assume uniform distribution.
+		if (probabilities == null || probabilities.size() <= 1 || probabilities.size() != list.size()) {
+			int index = ThreadLocalRandom.current().nextInt(0, list.size());
+			return list.get(index);
+		}
+
+		// Otherwise, we roll with the given distribution.
+		int totalProbabilityMass = probabilities.stream().reduce(Integer::sum).get();
+		int roll = ThreadLocalRandom.current().nextInt(1, totalProbabilityMass + 1);
+
+		int currentTotalChance = 0;
+		for (int i = 0; i < list.size(); i++) {
+			currentTotalChance += probabilities.get(i);
+
+			if (roll <= currentTotalChance) {
+				return list.get(i);
+			}
+		}
+
+		// Should never happen.
+		return list.get(0);
+	}
 }
