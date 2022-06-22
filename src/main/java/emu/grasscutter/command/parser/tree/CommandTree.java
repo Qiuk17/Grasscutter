@@ -13,7 +13,6 @@ import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.util.Arrays;
 import java.util.Set;
-import java.util.function.IntFunction;
 import java.util.regex.Pattern;
 
 public final class CommandTree {
@@ -115,8 +114,8 @@ public final class CommandTree {
         if (method == null) {
             return null;
         }
-        Description description = method.getAnnotation(Description.class);
-        String key = description != null ? description.value() : null;
+        CommandDescription commandDescription = method.getAnnotation(CommandDescription.class);
+        String key = commandDescription != null ? commandDescription.value() : null;
         if (key == null) {
             return null;
         }

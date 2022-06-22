@@ -8,9 +8,8 @@ import java.util.regex.Pattern;
 
 @CommandArgument
 public final class TargetUid {
-    /**
-     * start with "@", no prefix 0
-     */
+
+    // start with "@", no prefix 0
     private static final Pattern ValidPattern = Pattern.compile("^@[1-9]+\\d*$");
 
     @Getter

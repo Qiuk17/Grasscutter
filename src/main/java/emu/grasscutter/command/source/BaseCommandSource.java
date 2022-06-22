@@ -6,12 +6,12 @@ import emu.grasscutter.command.parser.CommandParser;
 import emu.grasscutter.command.parser.annotation.Origin;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
 public abstract class BaseCommandSource extends BaseContext {
 
     protected BiConsumer<BaseCommandSource, String> registeredCommandConsumer;
+    protected Cons
 
     public abstract String[] getPermissions();
     public abstract Origin getOrigin();
@@ -19,13 +19,13 @@ public abstract class BaseCommandSource extends BaseContext {
     /**
      * Display a message to current source.
      */
-    public synchronized void onMessage(String message) {
+    public synchronized void showMessage(String message) {
     }
 
     /**
      * Display an error to current source.
      */
-    public synchronized void onError(String error) {
+    public synchronized void showError(String error) {
     }
 
     /**

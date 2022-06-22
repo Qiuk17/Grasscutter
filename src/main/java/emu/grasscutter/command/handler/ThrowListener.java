@@ -14,18 +14,15 @@ public class ThrowListener {
     @Subscribe
     public void handleThrows(SubscriberExceptionEvent event) {
         // log to server console
-        if (Grasscutter.getConfig().DebugMode == Grasscutter.ServerDebugMode.ALL) {
+        if (Grasscutter.getConfig().server.debugLevel == Grasscutter.ServerDebugMode.ALL) {
             Grasscutter.getLogger().error(
                     "An error occurred in %s. Caused by:"
                             .formatted(event.causingSubscriber.getClass().getSimpleName()),
                     event.throwable);
         }
-        // notify the consumer if exists
+        // notify the consumer
         if (event.causingEvent instanceof HandlerEvent) {
-            Consumer<Throwable> errorConsumer = ((HandlerEvent) event.causingEvent).context().getErrorConsumer();
-            if (errorConsumer != null) {
-                errorConsumer.accept(event.throwable);
-            }
+            ((HandlerEvent) event.causingEvent).context().onError(event.throwable);
         }
     }
 }

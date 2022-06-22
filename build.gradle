@@ -23,13 +23,16 @@ plugins {
     id 'java'
 
     // Apply the protobuf auto generator
-    id 'com.google.protobuf' version "0.8.18"
+    id 'com.google.protobuf' version '0.8.18'
 
     // Eclipse Support
     id 'eclipse'
 
     // IntelliJ Support
     id 'idea'
+
+    // Project Lombok
+    id 'io.freefair.lombok' version '6.4.3'
 
     // Maven
     id 'maven-publish'
@@ -90,9 +93,6 @@ dependencies {
     implementation group:  'com.github.davidmoten', name : 'rtree-multi', version: '0.1'
 
     protobuf files('proto/')
-
-    compileOnly 'org.projectlombok:lombok:1.18.24'
-    annotationProcessor 'org.projectlombok:lombok:1.18.24'
 }
 
 configurations.all {
@@ -240,8 +240,11 @@ signing {
     }
 }
 
+
 javadoc {
+    exclude '**/*.md'
     options.encoding = 'UTF-8'
+    failOnError(false)
     if(JavaVersion.current().isJava9Compatible()) {
         options.addBooleanOption('html5', true)
     }

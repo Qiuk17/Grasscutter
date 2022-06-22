@@ -8,6 +8,7 @@ import org.reflections.Reflections;
 
 import java.util.*;
 
+@Deprecated(forRemoval = true)
 @SuppressWarnings({"UnusedReturnValue", "unused"})
 public final class CommandMap {
     private final Map<String, CommandHandler> commands = new HashMap<>();
