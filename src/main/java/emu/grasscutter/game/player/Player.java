@@ -6,6 +6,7 @@ import emu.grasscutter.Grasscutter;
 import emu.grasscutter.command.source.impl.ClientChatCommandSource;
 import emu.grasscutter.data.GameData;
 import emu.grasscutter.data.excels.PlayerLevelData;
+import emu.grasscutter.data.excels.WeatherData;
 import emu.grasscutter.database.DatabaseHelper;
 import emu.grasscutter.game.Account;
 import emu.grasscutter.game.CoopRequest;
@@ -39,6 +40,7 @@ import emu.grasscutter.game.managers.mapmark.*;
 import emu.grasscutter.game.managers.stamina.StaminaManager;
 import emu.grasscutter.game.managers.SotSManager;
 import emu.grasscutter.game.props.ActionReason;
+import emu.grasscutter.game.props.ClimateType;
 import emu.grasscutter.game.props.PlayerProperty;
 import emu.grasscutter.game.props.SceneType;
 import emu.grasscutter.game.quest.QuestManager;
@@ -72,6 +74,7 @@ import emu.grasscutter.utils.MessageHandler;
 import emu.grasscutter.utils.Utils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
+import lombok.Getter;
 
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -113,6 +116,8 @@ public class Player {
 	@Transient private int peerId;
 	@Transient private World world;
 	@Transient private Scene scene;
+	@Transient @Getter private int weatherId = 0;
+	@Transient @Getter private ClimateType climate = ClimateType.CLIMATE_SUNNY;
 	@Transient private GameSession session;
 	@Transient private AvatarStorage avatars;
 	@Transient private Inventory inventory;
@@ -121,7 +126,7 @@ public class Player {
 	@Transient private MessageHandler messageHandler;
 	@Transient private AbilityManager abilityManager;
 	@Transient private QuestManager questManager;
-	
+
 	@Transient private SotSManager sotsManager;
 	@Transient private InsectCaptureManager insectCaptureManager;
 
@@ -141,8 +146,8 @@ public class Player {
 	private int regionId;
 	private int mainCharacterId;
 	private boolean godmode;
-
 	private boolean stamina;
+
 	private boolean moonCard;
 	private Date moonCardStartTime;
 	private int moonCardDuration;
@@ -325,6 +330,28 @@ public class Player {
 		this.scene = scene;
 	}
 
+	synchronized public void setClimate(ClimateType climate) {
+		this.climate = climate;
+		this.session.send(new PacketSceneAreaWeatherNotify(this));
+	}
+
+	synchronized public void setWeather(int weather) {
+		this.setWeather(weather, ClimateType.CLIMATE_NONE);
+	}
+
+	synchronized public void setWeather(int weatherId, ClimateType climate) {
+		// Lookup default climate for this weather
+		if (climate == ClimateType.CLIMATE_NONE) {
+			WeatherData w = GameData.getWeatherDataMap().get(weatherId);
+			if (w != null) {
+				climate = w.getDefaultClimate();
+			}
+		}
+		this.weatherId = weatherId;
+		this.climate = climate;
+		this.session.send(new PacketSceneAreaWeatherNotify(this));
+	}
+
 	public int getGmLevel() {
 		return 1;
 	}
@@ -403,6 +430,14 @@ public class Player {
 		return this.getProperty(PlayerProperty.PROP_PLAYER_LEVEL);
 	}
 
+	public void setLevel(int level) {
+		this.setProperty(PlayerProperty.PROP_PLAYER_LEVEL, level);
+		this.sendPacket(new PacketPlayerPropNotify(this, PlayerProperty.PROP_PLAYER_LEVEL));
+
+		this.updateWorldLevel();
+		this.updateProfile();
+	}
+
 	public int getExp() {
 		return this.getProperty(PlayerProperty.PROP_PLAYER_EXP);
 	}
@@ -410,10 +445,12 @@ public class Player {
 	public int getWorldLevel() {
 		return this.getProperty(PlayerProperty.PROP_PLAYER_WORLD_LEVEL);
 	}
-	
+
 	public void setWorldLevel(int level) {
 		this.setProperty(PlayerProperty.PROP_PLAYER_WORLD_LEVEL, level);
 		this.sendPacket(new PacketPlayerPropNotify(this, PlayerProperty.PROP_PLAYER_WORLD_LEVEL));
+
+		this.updateProfile();
 	}
 
 	public int getPrimogems() {
@@ -433,7 +470,7 @@ public class Player {
 		this.setProperty(PlayerProperty.PROP_PLAYER_SCOIN, mora);
 		this.sendPacket(new PacketPlayerPropNotify(this, PlayerProperty.PROP_PLAYER_SCOIN));
 	}
-	
+
 	public int getCrystals() {
 		return this.getProperty(PlayerProperty.PROP_PLAYER_MCOIN);
 	}
@@ -482,12 +519,7 @@ public class Player {
 		}
 
 		if (hasLeveledUp) {
-			// Set level property
-			this.setProperty(PlayerProperty.PROP_PLAYER_LEVEL, level);
-			// Update social status
-			this.updateProfile();
-			// Update player with packet
-			this.sendPacket(new PacketPlayerPropNotify(this, PlayerProperty.PROP_PLAYER_LEVEL));
+			this.setLevel(level);
 		}
 
 		// Set exp
@@ -495,6 +527,27 @@ public class Player {
 
 		// Update player with packet
 		this.sendPacket(new PacketPlayerPropNotify(this, PlayerProperty.PROP_PLAYER_EXP));
+	}
+
+	private void updateWorldLevel() {
+		int currentWorldLevel = this.getWorldLevel();
+		int currentLevel = this.getLevel();
+
+		int newWorldLevel =
+			(currentLevel >= 55) ? 8 :
+			(currentLevel >= 50) ? 7 :
+			(currentLevel >= 45) ? 6 :
+			(currentLevel >= 40) ? 5 :
+			(currentLevel >= 35) ? 4 :
+			(currentLevel >= 30) ? 3 :
+			(currentLevel >= 25) ? 2 :
+			(currentLevel >= 20) ? 1 :
+			0;
+
+		if (newWorldLevel != currentWorldLevel) {
+			this.getWorld().setWorldLevel(newWorldLevel);
+			this.setWorldLevel(newWorldLevel);
+		}
 	}
 
 	private void updateProfile() {
@@ -508,11 +561,11 @@ public class Player {
 	public TeamManager getTeamManager() {
 		return this.teamManager;
 	}
-	
+
 	public TowerManager getTowerManager() {
 		return towerManager;
 	}
-	
+
 	public TowerData getTowerData() {
 		if(towerData==null){
 			// because of mistake, null may be saved as storage at some machine, this if can be removed in future
@@ -520,7 +573,7 @@ public class Player {
 		}
 		return towerData;
 	}
-	
+
 	public QuestManager getQuestManager() {
 		return questManager;
 	}
@@ -589,7 +642,7 @@ public class Player {
 	public MpSettingType getMpSetting() {
 		return MpSettingType.MP_SETTING_TYPE_ENTER_AFTER_APPLY; // TEMP
 	}
-	
+
 	public Queue<AttackResult> getAttackResults() {
 		return this.attackResults;
 	}
@@ -784,7 +837,7 @@ public class Player {
 		remainCalendar.add(Calendar.DATE, moonCardDuration);
 		Date theLastDay = remainCalendar.getTime();
 		Date now = DateHelper.onlyYearMonthDay(new Date());
-		return (int) ((theLastDay.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)); // By copilot 
+		return (int) ((theLastDay.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)); // By copilot
 	}
 
 	public void rechargeMoonCard() {
@@ -981,7 +1034,7 @@ public class Player {
 	}
 
 	public Mail getMail(int index) { return this.getMailHandler().getMailById(index); }
-	
+
 	public int getMailId(Mail message) {
 		return this.getMailHandler().getMailIndex(message);
 	}
@@ -989,9 +1042,9 @@ public class Player {
 	public boolean replaceMailByIndex(int index, Mail message) {
 		return this.getMailHandler().replaceMailByIndex(index, message);
 	}
-	
 
-	public void interactWith(int gadgetEntityId, GadgetInteractReq req) {
+
+	public void interactWith(int gadgetEntityId, GadgetInteractReq opType) {
 		GameEntity entity = getScene().getEntityById(gadgetEntityId);
 		if (entity == null) {
 			return;
@@ -1019,13 +1072,13 @@ public class Player {
 				}
 			}
 		} else if (entity instanceof EntityGadget gadget) {
-			
+
 			if (gadget.getContent() == null) {
 				return;
 			}
-			
-			boolean shouldDelete = gadget.getContent().onInteract(this, req);
-			
+
+			boolean shouldDelete = gadget.getContent().onInteract(this, opType);
+
 			if (shouldDelete) {
 				entity.getScene().removeEntity(entity);
 			}
@@ -1169,7 +1222,7 @@ public class Player {
 		}
 		return showAvatarInfoList;
 	}
-	
+
 	public PlayerWorldLocationInfoOuterClass.PlayerWorldLocationInfo getWorldPlayerLocationInfo() {
 		return PlayerWorldLocationInfoOuterClass.PlayerWorldLocationInfo.newBuilder()
 				.setSceneId(this.getSceneId())
@@ -1212,7 +1265,7 @@ public class Player {
 	public BattlePassManager getBattlePassManager(){
 		return battlePassManager;
 	}
-	
+
 	public void loadBattlePassManager() {
 		if (this.battlePassManager != null) return;
 		this.battlePassManager = DatabaseHelper.loadBattlePass(this);
@@ -1302,7 +1355,7 @@ public class Player {
 	public void save() {
 		DatabaseHelper.savePlayer(this);
 	}
-	
+
 	// Called from tokenrsp
 	public void loadFromDatabase() {
 		// Make sure these exist
@@ -1320,7 +1373,7 @@ public class Player {
 		}
 		//Make sure towerManager's player is online player
 		this.getTowerManager().setPlayer(this);
-		
+
 		// Load from db
 		this.getAvatars().loadFromDatabase();
 		this.getInventory().loadFromDatabase();
@@ -1329,7 +1382,7 @@ public class Player {
 		this.getFriendsList().loadFromDatabase();
 		this.getMailHandler().loadFromDatabase();
 		this.getQuestManager().loadFromDatabase();
-		
+
 		this.loadBattlePassManager();
 	}
 
@@ -1342,12 +1395,12 @@ public class Player {
 				quest.finish();
 			}
 			getQuestManager().addQuest(35101);
-			
+
 			this.setSceneId(3);
 			this.getPos().set(GameConstants.START_POSITION);
 		}
 		*/
-		
+
 		// Create world
 		World world = new World(this);
 		world.addPlayer(this);
@@ -1384,7 +1437,7 @@ public class Player {
 
 		// First notify packets sent
 		this.setHasSentAvatarDataNotify(true);
-		
+
 		// Set session state
 		session.setState(SessionState.ACTIVE);
 
@@ -1394,7 +1447,7 @@ public class Player {
 			session.close();
 			return;
 		}
-		
+
 		// register
 		getServer().registerPlayer(this);
 		getProfile().setPlayer(this); // Set online
